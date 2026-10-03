@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Links Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <!-- Header -->
+  <header class="bg-white shadow-md">
+    <div class="container mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-3">
+      <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+        <svg class="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+        </svg>
+        YouTube Links Hub
+      </h1>
+      <div class="flex flex-wrap gap-2">
+        <button id="loginBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm">Host Login</button>
+        <button id="logoutBtn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition shadow-sm hidden">Logout</button>
+        <button id="addLinkBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition shadow-sm hidden">+ Add Link</button>
+        <button id="exportBtn" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition shadow-sm hidden">Export links.json</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container mx-auto px-4 py-8 flex-grow">
+    <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <!-- Cards injected by JS -->
+    </div>
+    <div id="emptyMessage" class="text-center text-gray-500 mt-16 hidden">
+      <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <p class="text-lg">No YouTube links added yet.</p>
+    </div>
+  </main>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+      <h2 class="text-2xl font-bold mb-4 text-gray-800">Host Login</h2>
+      <input id="username" type="text" placeholder="Username" class="w-full border border-gray-300 p-3 mb-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <input id="password" type="password" placeholder="Password" class="w-full border border-gray-300 p-3 mb-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <div class="flex justify-end gap-3">
+        <button id="cancelLogin" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+        <button id="submitLogin" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">Login</button>
+      </div>
+      <p id="loginError" class="text-red-500 text-sm mt-3 hidden">Invalid credentials. Please try again.</p>
+    </div>
+  </div>
+
+  <!-- Add Link Modal -->
+  <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+      <h2 class="text-2xl font-bold mb-4 text-gray-800">Add YouTube Link</h2>
+      <input id="ytUrl" type="text" placeholder="YouTube Channel URL" class="w-full border border-gray-300 p-3 mb-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+      <input id="ytName" type="text" placeholder="Channel Name" class="w-full border border-gray-300 p-3 mb-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+      <input id="ytSubs" type="text" placeholder="Subscribers (e.g. 1.2M)" class="w-full border border-gray-300 p-3 mb-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+      <div class="flex justify-end gap-3">
+        <button id="cancelAdd" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+        <button id="submitAdd" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Add</button>
+      </div>
+      <p id="addError" class="text-red-500 text-sm mt-3 hidden">Please fill in all fields.</p>
+    </div>
+  </div>
+
+  <script>
+    // ---------- CONSTANTS ----------
+    const HOST_USERNAME = '@lhamza_khan';
+    const HOST_PASSWORD = 'hamzakhan-2006';
+
+    // ---------- STATE ----------
+    let links = [];
+    let isLoggedIn = false;
+
+    // ---------- ELEMENTS ----------
+    const cardsGrid = document.getElementById('cardsGrid');
+    const emptyMessage = document.getElementById('emptyMessage');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const addLinkBtn = document.getElementById('addLinkBtn');
+    const exportBtn = document.getElementById('exportBtn');
+
+    const loginModal = document.getElementById('loginModal');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const cancelLogin = document.getElementById('cancelLogin');
+    const submitLogin = document.getElementById('submitLogin');
+    const loginError = document.getElementById('loginError');
+
+    const addModal = document.getElementById('addModal');
+    const ytUrl = document.getElementById('ytUrl');
+    const ytName = document.getElementById('ytName');
+    const ytSubs = document.getElementById('ytSubs');
+    const cancelAdd = document.getElementById('cancelAdd');
+    const submitAdd = document.getElementById('submitAdd');
+    const addError = document.getElementById('addError');
+
+    // ---------- FUNCTIONS ----------
+
+    // Render cards based on `links`
+    function renderCards() {
+      cardsGrid.innerHTML = '';
+      if (links.length === 0) {
+        emptyMessage.classList.remove('hidden');
+      } else {
+        emptyMessage.classList.add('hidden');
+        links.forEach((link) => {
+          const card = document.createElement('div');
+          card.className = 'bg-white rounded-xl shadow-md overflow-hidden card-hover transition-all duration-200';
+          card.innerHTML = `
+            <div class="p-5 flex flex-col items-center text-center">
+              <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-10 h-10 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-gray-800 mb-1">${link.name}</h3>
+              <p class="text-gray-500 text-sm mb-4">${link.subscribers} subscribers</p>
+              <a href="${link.url}" target="_blank" rel="noopener noreferrer" class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition shadow-sm w-full">Visit Channel</a>
+              ${isLoggedIn ? `<button onclick="deleteLink('${link.id}')" class="mt-3 text-sm text-red-500 hover:text-red-700 font-medium">Delete</button>` : ''}
+            </div>
+          `;
+          cardsGrid.appendChild(card);
+        });
+      }
+    }
+
+    // Load public links from links.json
+    async function loadPublicLinks() {
+      try {
+        const response = await fetch('links.json');
+        if (response.ok) {
+          links = await response.json();
+        } else {
+          links = [];
+        }
+      } catch (e) {
+        links = [];
+      }
+      renderCards();
+    }
+
+    // Load host links from localStorage (or initialize from public links)
+    function loadHostLinks() {
+      const saved = localStorage.getItem('hostLinks');
+      if (saved) {
+        links = JSON.parse(saved);
+      } else {
+        // If no saved host links, use current links (public) and save as starting point
+        localStorage.setItem('hostLinks', JSON.stringify(links));
+      }
+      renderCards();
+    }
+
+    // Save current links to localStorage (host only)
+    function saveHostLinks() {
+      localStorage.setItem('hostLinks', JSON.stringify(links));
+    }
+
+    // Update UI visibility based on login state
+    function updateUIForLogin() {
+      if (isLoggedIn) {
+        loginBtn.classList.add('hidden');
+        logoutBtn.classList.remove('hidden');
+        addLinkBtn.classList.remove('hidden');
+        exportBtn.classList.remove('hidden');
+      } else {
+        loginBtn.classList.remove('hidden');
+        logoutBtn.classList.add('hidden');
+        addLinkBtn.classList.add('hidden');
+        exportBtn.classList.add('hidden');
+      }
+    }
+
+    // ---------- EVENT LISTENERS ----------
+
+    // Login button opens modal
+    loginBtn.addEventListener('click', () => {
+      loginModal.classList.remove('hidden');
+    });
+
+    // Cancel login
+    cancelLogin.addEventListener('click', () => {
+      loginModal.classList.add('hidden');
+      loginError.classList.add('hidden');
+      usernameInput.value = '';
+      passwordInput.value = '';
+    });
+
+    // Submit login
+    submitLogin.addEventListener('click', () => {
+      const user = usernameInput.value.trim();
+      const pass = passwordInput.value;
+      if (user === HOST_USERNAME && pass === HOST_PASSWORD) {
+        isLoggedIn = true;
+        loginModal.classList.add('hidden');
+        loginError.classList.add('hidden');
+        usernameInput.value = '';
+        passwordInput.value = '';
+        loadHostLinks();      // load host's local links
+        updateUIForLogin();
+      } else {
+        loginError.classList.remove('hidden');
+      }
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', () => {
+      isLoggedIn = false;
+      loadPublicLinks();      // revert to public links
+      updateUIForLogin();
+    });
+
+    // Open add link modal
+    addLinkBtn.addEventListener('click', () => {
+      addModal.classList.remove('hidden');
+    });
+
+    // Cancel add link
+    cancelAdd.addEventListener('click', () => {
+      addModal.classList.add('hidden');
+      addError.classList.add('hidden');
+      ytUrl.value = '';
+      ytName.value = '';
+      ytSubs.value = '';
+    });
+
+    // Submit new link
+    submitAdd.addEventListener('click', () => {
+      const url = ytUrl.value.trim();
+      const name = ytName.value.trim();
+      const subs = ytSubs.value.trim();
+      if (!url || !name || !subs) {
+        addError.classList.remove('hidden');
+        return;
+      }
+      const newLink = {
+        id: Date.now().toString(),
+        url: url,
+        name: name,
+        subscribers: subs
+      };
+      links.push(newLink);
+      saveHostLinks();
+      addModal.classList.add('hidden');
+      addError.classList.add('hidden');
+      ytUrl.value = '';
+      ytName.value = '';
+      ytSubs.value = '';
+      renderCards();
+    });
+
+    // Delete link (called from card button)
+    window.deleteLink = function(id) {
+      if (!isLoggedIn) return;
+      links = links.filter(link => link.id !== id);
+      saveHostLinks();
+      renderCards();
+    };
+
+    // Export links.json
+    exportBtn.addEventListener('click', () => {
+      const dataStr = JSON.stringify(links, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'links.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // ---------- INITIAL LOAD ----------
+    // Always start with public links
+    loadPublicLinks();
+    updateUIForLogin();
+  </script>
+</body>
+  </html>
